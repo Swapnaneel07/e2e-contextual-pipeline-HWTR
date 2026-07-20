@@ -1,47 +1,81 @@
-# End-to-End Contextual OCR Pipeline
+# End-to-End Contextual Pipeline for Handwritten Text Recognition
 
-This repository implements a 3-stage Handwritten Text Recognition (HTR) pipeline designed for research and comparative studies on contextual error correction. 
+A comparative study on LLM-based contextual post-processing for improving
+Handwritten Text Recognition (HTR) accuracy.
 
 ## Architecture
 
-The pipeline processes raw document images containing handwritten text, avoiding the need for pre-cropped word images.
+Three-stage pipeline that processes raw document images:
 
-1. **Stage 1 (Detection)**: Uses `CRAFT` (Character Region Awareness for Text detection) to identify and crop text regions on the page, maintaining reading order.
-2. **Stage 2 (Recognition)**: Uses a fine-tuned `TrOCR` (Transformer OCR) model to predict the text content of the crops.
-3. **Stage 3 (Contextual Correction)**: Passes the raw OCR string to an LLM (Gemini 1.5 Pro) to fix spelling and grammar errors using sentence context.
+```
+┌──────────────┐     ┌──────────────┐     ┌─────────────────────┐
+│  Stage 1     │     │  Stage 2     │     │  Stage 3            │
+│  CRAFT       │ ──► │  TrOCR       │ ──► │  Contextual         │
+│  Detection   │     │  Recognition │     │  Correction (LLM)   │
+└──────────────┘     └──────────────┘     └─────────────────────┘
+  Raw page image       Cropped word         Corrected text
+  → Bounding boxes     images → Raw text    (Ollama / Gemini / SpellCheck)
+```
 
-## Setup Instructions
+## Setup
 
-1. **Install Dependencies**
+1. **Install dependencies**
    ```bash
    pip install -r requirements.txt
    ```
 
-2. **Configure Environment Variables**
-   Create a `.env` file in the root directory and add your Gemini API key:
-   ```
-   GEMINI_API_KEY=your_api_key_here
-   ```
+2. **For local LLM correction** (recommended):
+   - Install [Ollama](https://ollama.ai/)
+   - Pull a model: `ollama pull phi4-mini`
+   - Start the server: `ollama serve`
 
-3. **Model Checkpoint**
-   Ensure your fine-tuned TrOCR model is located in the appropriate directory or provide its Hugging Face hub ID.
+3. **For Gemini API correction** (optional):
+   - Create a `.env` file: `GEMINI_API_KEY=your_key_here`
 
 ## Usage
 
-To run the end-to-end pipeline on an image:
-
 ```bash
-python -m src.pipeline --image path/to/image.jpg --model_path microsoft/trocr-small-handwritten
+# No correction (raw OCR only)
+python -m src.pipeline --image path/to/image.jpg --no_correction
+
+# With local LLM correction (Ollama)
+python -m src.pipeline --image path/to/image.jpg --corrector ollama --llm_model phi4-mini
+
+# With Gemini API correction
+python -m src.pipeline --image path/to/image.jpg --corrector gemini
+
+# With spell-check baseline
+python -m src.pipeline --image path/to/image.jpg --corrector spellcheck
+
+# Use fine-tuned model
+python -m src.pipeline --image path/to/image.jpg --model_path trocr_handwritten/checkpoint-6770
 ```
 
-**Arguments:**
-- `--image`: Path to the input image (required).
-- `--model_path`: Path to fine-tuned TrOCR model (default: "microsoft/trocr-small-handwritten").
-- `--no_llm`: Disable the LLM correction stage.
-- `--device`: `cuda` or `cpu`.
+## Project Structure
 
-The script will output the detected text regions, the raw OCR text, the LLM-corrected text, and generate a side-by-side visualization (`output_visualization.png`).
+```
+├── src/
+│   ├── pipeline.py                  # Main orchestrator
+│   ├── detection/
+│   │   └── craft_detector.py        # Stage 1: CRAFT text detection
+│   ├── recognition/
+│   │   └── trocr_recognizer.py      # Stage 2: TrOCR inference
+│   ├── correction/
+│   │   └── llm_corrector.py         # Stage 3: LLM/SpellCheck correction
+│   ├── evaluation/
+│   │   └── metrics.py               # CER/WER computation
+│   └── utils/
+│       └── visualizer.py            # Result visualization
+├── preprocess_gnhk_dataset.py       # Dataset preprocessing
+├── Fine_Tune_TrOCR_Handwritten.ipynb # Model training notebook
+├── requirements.txt
+└── README.md
+```
 
 ## Evaluation
 
-The `src/evaluation/metrics.py` script provides tools for calculating Character Error Rate (CER) and Word Error Rate (WER) using the Hugging Face `evaluate` library. This is intended to benchmark the CER improvements provided by Stage 3.
+The comparative study benchmarks CER/WER across correction methods:
+1. **No correction** — raw TrOCR output (baseline)
+2. **SpellCheck** — dictionary-based baseline
+3. **Local LLM** — Phi-4-mini via Ollama
+4. **Cloud LLM** — Gemini Flash via API
