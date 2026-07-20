@@ -1,13 +1,35 @@
+# Core ML
 transformers>=4.28.0
 torch>=2.0.0
 torchvision>=0.15.0
-evaluate>=0.4.0
-jiwer>=3.0.1
+safetensors>=0.3.0
+
+# OCR Detection
+craft-text-detector>=0.4.2
+
+# Image Processing
 opencv-python>=4.7.0
 Pillow>=9.5.0
+
+# Data & Visualization
 pandas>=2.0.0
 numpy>=1.24.0
-craft-text-detector>=0.4.2
-google-generativeai>=0.4.0
-python-dotenv>=1.0.0
 matplotlib>=3.7.0
+
+# Evaluation Metrics
+evaluate>=0.4.0
+jiwer>=3.0.1
+
+# LLM Correction — Local (Ollama)
+requests>=2.28.0
+
+# LLM Correction — Gemini API (optional)
+google-generativeai>=0.4.0
+
+# Spell-check baseline (optional)
+pyspellchecker>=0.7.0
+
+# Utilities
+python-dotenv>=1.0.0
+sentencepiece>=0.1.99
+tqdm>=4.65.0
