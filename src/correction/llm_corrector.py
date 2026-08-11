@@ -139,19 +139,22 @@ class SpellCheckCorrector:
 
     def correct(self, raw_ocr_text):
         from spellchecker import SpellChecker
-        words = raw_ocr_text.split()
-        corrected = []
-        for word in words:
-            # Preserve punctuation
-            stripped = word.strip(".,!?;:\"'()-")
-            prefix = word[:len(word) - len(word.lstrip(".,!?;:\"'()-"))]
-            suffix = word[len(stripped) + len(prefix):]
+        corrected_lines = []
+        for line in raw_ocr_text.split("\n"):
+            words = line.split()
+            corrected = []
+            for word in words:
+                # Preserve punctuation
+                stripped = word.strip(".,!?;:\"'()-")
+                prefix = word[:len(word) - len(word.lstrip(".,!?;:\"'()-"))]
+                suffix = word[len(stripped) + len(prefix):]
 
-            correction = self.spell.correction(stripped)
-            if correction is None:
-                correction = stripped
-            corrected.append(prefix + correction + suffix)
-        return " ".join(corrected)
+                correction = self.spell.correction(stripped)
+                if correction is None:
+                    correction = stripped
+                corrected.append(prefix + correction + suffix)
+            corrected_lines.append(" ".join(corrected))
+        return "\n".join(corrected_lines)
 
 
 # --------------------------------------------------------------------------- #

@@ -35,16 +35,13 @@ class TrOCRRecognizer:
         print(f"[TrOCR] Device: {self.device}")
 
         # --- Load processor (image feature extractor + tokenizer) ---
-        # Fine-tuned checkpoints saved by HF Trainer typically contain only
-        # preprocessor_config.json (image processor) but NOT the tokenizer
-        # files. So we always load the processor from the base model ID to
-        # guarantee the tokenizer is present.
-        try:
-            self.processor = TrOCRProcessor.from_pretrained(model_path)
-            print(f"[TrOCR] Processor loaded from: {model_path}")
-        except (OSError, EnvironmentError):
-            print(f"[TrOCR] Processor not found in checkpoint, loading from base: {BASE_MODEL_ID}")
-            self.processor = TrOCRProcessor.from_pretrained(BASE_MODEL_ID)
+        # IMPORTANT: Always load the processor from the base model ID.
+        # Fine-tuned checkpoints may contain a partial preprocessor_config.json
+        # that loads without error but produces a broken tokenizer (decodes to
+        # empty strings). Loading from the base model guarantees a correct
+        # image processor + tokenizer combination.
+        self.processor = TrOCRProcessor.from_pretrained(BASE_MODEL_ID)
+        print(f"[TrOCR] Processor loaded from base model: {BASE_MODEL_ID}")
 
         # --- Load model weights ---
         self.model = VisionEncoderDecoderModel.from_pretrained(model_path).to(self.device)

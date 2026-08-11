@@ -9,7 +9,35 @@ so downstream modules can reconstruct multi-line text.
 import os
 import cv2
 import numpy as np
+
+# --------------------------------------------------------------------------- #
+#  Compatibility patches for craft-text-detector with modern dependencies
+# --------------------------------------------------------------------------- #
+
+# Patch 1: torchvision >= 0.15 removed model_urls from vgg module
+import torchvision.models.vgg as _vgg_module
+if not hasattr(_vgg_module, "model_urls"):
+    _vgg_module.model_urls = {
+        "vgg16_bn": "https://download.pytorch.org/models/vgg16_bn-6c64b313.pth",
+    }
+
+# Patch 2: numpy >= 1.24 rejects ragged arrays in np.array().
+#   CRAFT's adjustResultCoordinates calls np.array(polys) where polys can have
+#   different vertex counts, causing ValueError. We patch it to iterate instead.
+import craft_text_detector.craft_utils as _craft_utils
+
+def _patched_adjustResultCoordinates(polys, ratio_w, ratio_h, ratio_net=2):
+    if len(polys) > 0:
+        for k in range(len(polys)):
+            if polys[k] is not None:
+                polys[k] = np.array(polys[k])
+                polys[k] *= (ratio_w * ratio_net, ratio_h * ratio_net)
+    return polys
+
+_craft_utils.adjustResultCoordinates = _patched_adjustResultCoordinates
+
 from craft_text_detector import Craft
+
 
 
 class TextDetector:
